@@ -1,10 +1,167 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+    <title>Members</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            padding: 5px;
+        }
+    </style>
 </head>
 <body>
-$END$
+<h1>Members</h1>
+
+<h2>Add New Member</h2>
+<form id="add-member-form">
+    <label for="name">Name:</label>
+    <input type="text" id="name" name="name" required><br><br>
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required><br><br>
+
+    <button type="submit">Add Member</button>
+</form>
+
+<h2>Update Member</h2>
+<form id="update-member-form" style="display:none;">  <input type="hidden" id="update-member-id" name="id"> <label for="name">Name:</label>
+    <input type="text" id="update-name" name="name" required><br><br>
+
+    <label for="email">Email:</label>
+    <input type="email" id="update-email" name="email" required><br><br>
+
+    <button type="submit">Update Member</button>
+    <button type="button" onclick="hideUpdateForm()">Cancel</button>
+</form>
+
+<h2>Delete Member</h2>
+<form id="delete-member-form" style="display:none;">  <input type="hidden" id="delete-member-id" name="id">
+    <p>Are you sure you want to delete this member?</p>
+    <button type="submit">Delete</button>
+    <button type="button" onclick="hideDeleteForm()">Cancel</button>
+</form>
+
+
+<script>
+    const memberTableBody = document.getElementById('member-table-body');
+    const addMemberForm = document.getElementById('add-member-form');
+    const updateMemberForm = document.getElementById('update-member-form');
+    const deleteMemberForm = document.getElementById('delete-member-form');
+
+    function loadMembers() {
+        fetch('/members')
+            .then(response => response.json())
+            .then(members => {
+                memberTableBody.innerHTML = ''; // Clear existing rows
+                members.forEach(member => {
+                    const row = memberTableBody.insertRow();
+                    const idCell = row.insertCell();
+                    const nameCell = row.insertCell();
+                    const emailCell = row.insertCell();
+                    const actionsCell = row.insertCell();
+
+                    idCell.textContent = member.id;
+                    nameCell.textContent = member.name;
+                    emailCell.textContent = member.email;
+
+                    // Add update button
+                    const updateButton = document.createElement('button');
+                    updateButton.textContent = 'Update';
+                    updateButton.onclick = () => showUpdateForm(member);
+                    actionsCell.appendChild(updateButton);
+
+                    // Add delete button
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.onclick = () => showDeleteForm(member);
+                    actionsCell.appendChild(deleteButton);
+
+
+                });
+            });
+    }
+
+    function showUpdateForm(member) {
+        updateMemberForm.style.display = 'block';
+        updateMemberForm.querySelector('#update-member-id').value = member.id;
+        updateMemberForm.querySelector('#update-name').value = member.name;
+        updateMemberForm.querySelector('#update-email').value = member.email;
+    }
+
+    function hideUpdateForm() {
+        updateMemberForm.style.display = 'none';
+    }
+
+    function showDeleteForm(member) {
+        deleteMemberForm.style.display = 'block';
+        deleteMemberForm.querySelector('#delete-member-id').value = member.id;
+    }
+
+    function hideDeleteForm() {
+        deleteMemberForm.style.display = 'none';
+    }
+
+    addMemberForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(addMemberForm);
+
+        fetch('/members', {
+            method: 'POST',
+            body: new URLSearchParams(formData)
+        })
+        .then(response => {
+            if (response.ok) {
+                loadMembers();
+                addMemberForm.reset();
+            } else {
+                response.text().then(errorMessage => alert(errorMessage));
+            }
+        });
+    });
+
+    updateMemberForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(updateMemberForm);
+        const memberId = document.getElementById('update-member-id').value;
+
+        fetch(`/members/${memberId}`, {
+            method: 'PUT',
+            body: new URLSearchParams(formData)
+        })
+        .then(response => {
+            if (response.ok) {
+                loadMembers();
+                updateMemberForm.reset();
+                hideUpdateForm();
+            } else {
+                response.text().then(errorMessage => alert(errorMessage));
+            }
+        });
+    });
+
+    deleteMemberForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        const memberId = document.getElementById('delete-member-id').value;
+
+        fetch(`/members/${memberId}`, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (response.status === 204) { // 204 No Content for successful delete
+                loadMembers();
+                hideDeleteForm();
+            } else if (response.status === 404) {
+                alert("Member not found.");
+            } else {
+                response.text().then(errorMessage => alert(errorMessage));
+            }
+        });
+    });
+
+
+    loadMembers(); // Load members on page load
+</script>
+
 </body>
 </html>
